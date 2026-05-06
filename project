@@ -1,0 +1,205 @@
+import pandas as pd
+
+FILENAME = "students.txt"
+
+
+class Student:
+    def __init__(self, roll_no, name, attendance, marks):
+        self.roll_no = roll_no
+        self.name = name
+        self.attendance = attendance
+        self.marks = marks
+        self.avg = sum(marks) / len(marks)
+        self.grade = self.get_grade()
+
+    def get_grade(self):
+        if self.avg >= 90:
+            return "A"
+        elif self.avg >= 80:
+            return "B"
+        elif self.avg >= 70:
+            return "C"
+        elif self.avg >= 60:
+            return "D"
+        else:
+            return "F"
+
+    def update_marks(self, new_marks):
+        self.marks = new_marks
+        self.avg = sum(new_marks) / len(new_marks)
+        self.grade = self.get_grade()
+
+    def show(self):
+        print(f"  {self.roll_no} | {self.name} | avg: {self.avg:.1f} | grade: {self.grade} | attendance: {self.attendance}%")
+
+
+def load_students():
+    students = []
+    try:
+        file = open(FILENAME, "r")
+        for line in file:
+            data = line.strip().split(",")
+            roll = int(data[0])
+            name = data[1]
+            attendance = int(data[2])
+            marks = [float(data[i]) for i in range(3, 8)]
+            students.append(Student(roll, name, attendance, marks))
+        file.close()
+    except:
+        print("No saved data found, starting fresh.")
+    return students
+
+
+def save_students(students):
+    file = open(FILENAME, "w")
+    for s in students:
+        line = f"{s.roll_no},{s.name},{s.attendance}"
+        for m in s.marks:
+            line += f",{m}"
+        file.write(line + "\n")
+    file.close()
+
+
+def find_student(students, roll):
+    for s in students:
+        if s.roll_no == roll:
+            return s
+    return None
+
+
+def add_student(students):
+    try:
+        roll = int(input("Roll number: "))
+        if find_student(students, roll):
+            print("That roll number already exists.")
+            return
+
+        name = input("Name: ")
+        attendance = int(input("Attendance %: "))
+
+        marks = []
+        for i in range(5):
+            m = float(input(f"Marks for subject {i+1}: "))
+            marks.append(m)
+
+        s = Student(roll, name, attendance, marks)
+        students.append(s)
+        save_students(students)
+        print(f"Added {name} with grade {s.grade}.")
+
+    except:
+        print("Something went wrong, try again.")
+
+
+def search_student(students):
+    choice = input("Search by roll(r) or name(n)? ").strip().lower()
+
+    if choice == "r":
+        roll = int(input("Roll number: "))
+        s = find_student(students, roll)
+        if s:
+            s.show()
+        else:
+            print("Not found.")
+
+    elif choice == "n":
+        name = input("Name: ").strip()
+        found = False
+        for s in students:
+            if s.name.lower() == name.lower():
+                s.show()
+                found = True
+        if not found:
+            print("Not found.")
+    else:
+        print("Invalid option.")
+
+
+def update_marks(students):
+    try:
+        roll = int(input("Roll number to update: "))
+        s = find_student(students, roll)
+
+        if s is None:
+            print("Student not found.")
+            return
+
+        new_marks = []
+        for i in range(5):
+            m = float(input(f"Subject {i+1}: "))
+            new_marks.append(m)
+
+        s.update_marks(new_marks)
+        save_students(students)
+        print(f"Updated. New avg: {s.avg:.1f}, Grade: {s.grade}")
+
+    except:
+        print("Invalid input.")
+
+
+def list_toppers(students):
+    if not students:
+        print("No students.")
+        return
+
+    highest = max(s.avg for s in students)
+    print("\nTopper(s):")
+    for s in students:
+        if s.avg == highest:
+            s.show()
+
+
+def report_cards(students):
+    if not students:
+        print("No data.")
+        return
+
+    # using pandas just to display as a table
+    rows = [[s.roll_no, s.name, round(s.avg, 1), s.grade] for s in students]
+    df = pd.DataFrame(rows, columns=["Roll", "Name", "Avg", "Grade"])
+    print("\n" + df.to_string(index=False))
+
+
+def login():
+    pw = input("Password: ").strip()
+    return pw == "admin"
+
+
+def main():
+    print("Student Management System")
+
+    if not login():
+        print("Wrong password.")
+        return
+
+    students = load_students()
+
+    while True:
+        print("\n1. Add student")
+        print("2. Search student")
+        print("3. Update marks")
+        print("4. Show toppers")
+        print("5. Report cards")
+        print("6. Exit")
+
+        choice = input("Choice: ").strip()
+
+        if choice == "1":
+            add_student(students)
+        elif choice == "2":
+            search_student(students)
+        elif choice == "3":
+            update_marks(students)
+        elif choice == "4":
+            list_toppers(students)
+        elif choice == "5":
+            report_cards(students)
+        elif choice == "6":
+            save_students(students)
+            print("Bye!")
+            break
+        else:
+            print("Invalid choice.")
+
+
+main()
